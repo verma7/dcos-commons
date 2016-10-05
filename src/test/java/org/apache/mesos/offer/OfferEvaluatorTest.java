@@ -46,14 +46,14 @@ public class OfferEvaluatorTest {
         Assert.assertEquals(3, recommendations.size());
 
         // Validate RESERVE Operation
-        Operation unreserveOperation = recommendations.get(0).getOperation();
+        Operation reserveOperation = recommendations.get(0).getOperation();
         Resource reserveResource =
-            unreserveOperation
+            reserveOperation
             .getReserve()
             .getResourcesList()
             .get(0);
 
-        Assert.assertEquals(Operation.Type.RESERVE, unreserveOperation.getType());
+        Assert.assertEquals(Operation.Type.RESERVE, reserveOperation.getType());
         Assert.assertEquals(2000, reserveResource.getScalar().getValue(), 0.0);
         Assert.assertEquals(TestConstants.role, reserveResource.getRole());
         Assert.assertEquals(TestConstants.mountRoot, reserveResource.getDisk().getSource().getMount().getRoot());
