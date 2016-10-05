@@ -7,12 +7,15 @@ import org.apache.mesos.executor.ExecutorUtils;
 import org.apache.mesos.testutils.*;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class OfferEvaluatorTest {
 
     private static final OfferEvaluator evaluator = new OfferEvaluator();
+    private static final Logger logger = LoggerFactory.getLogger(OfferEvaluatorTest.class);
 
     @Test
     public void testReserveTaskExecutorInsufficient() throws InvalidRequirementException {
@@ -43,14 +46,14 @@ public class OfferEvaluatorTest {
         Assert.assertEquals(3, recommendations.size());
 
         // Validate RESERVE Operation
-        Operation reserveOperation = recommendations.get(0).getOperation();
+        Operation unreserveOperation = recommendations.get(0).getOperation();
         Resource reserveResource =
-            reserveOperation
+            unreserveOperation
             .getReserve()
             .getResourcesList()
             .get(0);
 
-        Assert.assertEquals(Operation.Type.RESERVE, reserveOperation.getType());
+        Assert.assertEquals(Operation.Type.RESERVE, unreserveOperation.getType());
         Assert.assertEquals(2000, reserveResource.getScalar().getValue(), 0.0);
         Assert.assertEquals(TestConstants.role, reserveResource.getRole());
         Assert.assertEquals(TestConstants.mountRoot, reserveResource.getDisk().getSource().getMount().getRoot());
@@ -308,6 +311,65 @@ public class OfferEvaluatorTest {
         Assert.assertEquals(Operation.Type.LAUNCH, launchOperation.getType());
         Assert.assertEquals(getFirstLabel(reserveResource).getValue(), getFirstLabel(launchResource).getValue());
     }
+
+    @Test
+    public void testUnreserveReserveLaunchScalarWithLabels() throws InvalidRequirementException {
+        Resource desiredResource = ResourceTestUtils.getDesiredCpu(1.0);
+        Resource offeredResource = ResourceUtils.getReservedScalar("cpus", 3.0, TestConstants.role);
+        logger.info("OfferedResource: " + offeredResource.toString());
+
+        List<OfferRecommendation> recommendations = evaluator.evaluate(
+                OfferRequirementTestUtils.getOfferRequirement(desiredResource),
+                Arrays.asList(OfferTestUtils.getOffer(offeredResource)));
+        Assert.assertEquals(3, recommendations.size());
+
+        logger.info("Recommendations: " + recommendations);
+        // Validate UNRESERVE Operation
+        Operation unreserveOperation = recommendations.get(0).getOperation();
+        Resource unreserveResource =
+                unreserveOperation
+                        .getUnreserve()
+                        .getResourcesList()
+                        .get(0);
+
+        Assert.assertEquals(Operation.Type.UNRESERVE, unreserveOperation.getType());
+        Assert.assertEquals(1.0, unreserveResource.getScalar().getValue(), 0.0);
+        Assert.assertEquals(TestConstants.role, unreserveResource.getRole());
+        Assert.assertEquals(TestConstants.principal, unreserveResource.getReservation().getPrincipal());
+        Assert.assertEquals(0, unreserveResource.getReservation().getLabels().getLabelsCount());
+        Assert.assertFalse(unreserveResource.hasDisk());
+
+        // Validate RESERVE Operation
+        Operation reserveOperation = recommendations.get(1).getOperation();
+        Resource reserveResource =
+                reserveOperation
+                        .getReserve()
+                        .getResourcesList()
+                        .get(0);
+
+        Assert.assertEquals(Operation.Type.RESERVE, reserveOperation.getType());
+        Assert.assertEquals(1.0, reserveResource.getScalar().getValue(), 0.0);
+        Assert.assertEquals(TestConstants.role, reserveResource.getRole());
+        Assert.assertEquals(TestConstants.principal, reserveResource.getReservation().getPrincipal());
+        Assert.assertEquals(MesosResource.RESOURCE_ID_KEY, getFirstLabel(reserveResource).getKey());
+        logger.info("Label: " + getFirstLabel(reserveResource).getValue());
+        Assert.assertEquals(36, getFirstLabel(reserveResource).getValue().length());
+        Assert.assertFalse(reserveResource.hasDisk());
+
+        // Validate LAUNCH Operation
+        Operation launchOperation = recommendations.get(2).getOperation();
+        Resource launchResource =
+                launchOperation
+                        .getLaunch()
+                        .getTaskInfosList()
+                        .get(0)
+                        .getResourcesList()
+                        .get(0);
+
+        Assert.assertEquals(Operation.Type.LAUNCH, launchOperation.getType());
+        Assert.assertEquals(getFirstLabel(reserveResource).getValue(), getFirstLabel(launchResource).getValue());
+    }
+
 
     @Test
     public void testCustomExecutorReserveLaunchScalar() throws InvalidRequirementException {

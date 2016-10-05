@@ -240,6 +240,29 @@ public class OfferEvaluator {
 
                 logger.info("Fulfilled resource: {}", TextFormat.shortDebugString(fulfilledResource));
                 fulfilledResources.add(fulfilledResource);
+
+
+                // If a Mesos agent's resources are dynamically reserved out of band, the received offer will have a
+                // reservation for the role, but no labels. When we try to issue a RESERVE operation, Mesos master
+                // drops the operation as it cannot merge resources with and without labels.
+                // To prevent this and add labels to existing reservations, first UNRESERVE the fulfilled resource
+                // and then reserve it with labels.
+
+                // Make sure that the role is the same.
+                if (offer.getResourcesList().get(0).hasRole()
+                    && offer.getResourcesList().get(0).getRole().equals(resReq.getRole())
+                        // And that there are no labels on the reservation
+                        && offer.getResourcesList().get(0).getReservation().getLabels().getLabelsCount() == 0) {
+
+                    // Clear the labels on the resource
+                    Resource unreserveResource = Resource.newBuilder(fulfilledResource).setReservation
+                            (ReservationInfo.newBuilder(fulfilledResource.getReservation()).clearLabels()).build();
+                    UnreserveOfferRecommendation unreserve = new UnreserveOfferRecommendation(offer,
+                            unreserveResource);
+                    logger.info("Found reservation without labels: Adding unreserve offer recommendation: {}",
+                            unreserve);
+                    unreserveRecommendations.add(unreserve);
+                }
             }
 
             return new FulfilledRequirement(

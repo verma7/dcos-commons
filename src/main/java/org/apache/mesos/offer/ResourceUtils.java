@@ -126,12 +126,16 @@ public class ResourceUtils {
     }
 
     public static Resource getUnreservedScalar(String name, double value) {
+        return getReservedScalar(name, value, "*");
+    }
+
+    public static Resource getReservedScalar(String name, double value, String role) {
         Value val = Value.newBuilder()
                 .setType(Value.Type.SCALAR)
                 .setScalar(Value.Scalar.newBuilder().setValue(value))
                 .build();
         Resource.Builder resBuilder = Resource.newBuilder(ResourceUtils.getUnreservedResource(name, val));
-        resBuilder.setRole("*");
+        resBuilder.setRole(role);
 
         return resBuilder.build();
     }
