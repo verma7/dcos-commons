@@ -37,6 +37,10 @@ public class CuratorPersister implements Persister {
         this(createClient(connectionString, retryPolicy));
     }
 
+    public CuratorPersister(String connectionString, RetryPolicy retryPolicy, String username, String password) {
+        this(createClient(connectionString, retryPolicy, username, password));
+    }
+
     public CuratorPersister(CuratorFramework client) {
         this.client = client;
     }
@@ -107,6 +111,32 @@ public class CuratorPersister implements Persister {
 
     private static CuratorFramework createClient(String connectionString, RetryPolicy retryPolicy) {
         CuratorFramework client = CuratorFrameworkFactory.newClient(connectionString, retryPolicy);
+        client.start();
+        return client;
+    }
+
+    /**
+     * Create new CuratorFramework client using the Builder to add Auth & ACL.
+     * @param connectionString
+     * @param retryPolicy
+     * @param username
+     * @param password
+     * @return
+     */
+    private static CuratorFramework createClient(String connectionString,
+                                                 RetryPolicy retryPolicy,
+                                                 String username,
+                                                 String password) {
+        if (username.isEmpty() && password.isEmpty()) {
+            return createClient(connectionString, retryPolicy);
+        } else if (username.isEmpty() || password.isEmpty()) {
+            throw new IllegalArgumentException("Zookeeper authorization credentials are inappropriate");
+        }
+
+        CuratorFramework client = CuratorUtils.getClientWithAcl(connectionString,
+                retryPolicy,
+                username,
+                password);
         client.start();
         return client;
     }

@@ -1,7 +1,7 @@
 package org.apache.mesos.curator;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.curator.RetryPolicy;
-import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.mesos.Protos;
 import org.apache.mesos.dcos.DcosConstants;
 import org.apache.mesos.offer.TaskException;
@@ -11,8 +11,6 @@ import org.apache.mesos.storage.Persister;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
 
 import java.io.IOException;
 import java.util.*;
@@ -78,9 +76,22 @@ public class CuratorStateStore implements StateStore {
      * @param connectionString The host/port of the ZK server, eg "master.mesos:2181"
      */
     public CuratorStateStore(String frameworkName, String connectionString) {
-        this(frameworkName, connectionString, new ExponentialBackoffRetry(
-                CuratorUtils.DEFAULT_CURATOR_POLL_DELAY_MS,
-                CuratorUtils.DEFAULT_CURATOR_MAX_RETRIES));
+        this(frameworkName, connectionString, CuratorUtils.getDefaultRetry(), "", "");
+    }
+
+    public CuratorStateStore(
+            String frameworkName,
+            String connectionString,
+            RetryPolicy retryPolicy) {
+        this(frameworkName, connectionString, retryPolicy, "", "");
+    }
+
+    public CuratorStateStore(
+            String frameworkName,
+            String connectionString,
+            String username,
+            String password) {
+        this(frameworkName, connectionString, CuratorUtils.getDefaultRetry(), username, password);
     }
 
     /**
@@ -91,8 +102,12 @@ public class CuratorStateStore implements StateStore {
      * @param retryPolicy      The custom {@link RetryPolicy}
      */
     public CuratorStateStore(
-            String frameworkName, String connectionString, RetryPolicy retryPolicy) {
-        this.curator = new CuratorPersister(connectionString, retryPolicy);
+            String frameworkName,
+            String connectionString,
+            RetryPolicy retryPolicy,
+            String username,
+            String password) {
+        this.curator = new CuratorPersister(connectionString, retryPolicy, username, password);
 
         // Check version up-front:
         int currentVersion = new CuratorSchemaVersionStore(curator, frameworkName).fetch();

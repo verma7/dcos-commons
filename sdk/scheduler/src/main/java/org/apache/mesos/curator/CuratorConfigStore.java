@@ -1,7 +1,6 @@
 package org.apache.mesos.curator;
 
 import org.apache.curator.RetryPolicy;
-import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.mesos.config.ConfigStore;
 import org.apache.mesos.config.ConfigStoreException;
 import org.apache.mesos.config.Configuration;
@@ -65,10 +64,26 @@ public class CuratorConfigStore<T extends Configuration> implements ConfigStore<
      * @param connectionString The host/port of the ZK server, eg "master.mesos:2181"
      */
     public CuratorConfigStore(ConfigurationFactory<T> factory, String frameworkName, String connectionString) {
-        this(factory, frameworkName, connectionString, new ExponentialBackoffRetry(
-                CuratorUtils.DEFAULT_CURATOR_POLL_DELAY_MS,
-                CuratorUtils.DEFAULT_CURATOR_MAX_RETRIES));
+        this(factory, frameworkName, connectionString, CuratorUtils.getDefaultRetry(), "", "");
     }
+
+    public CuratorConfigStore(
+            ConfigurationFactory<T> factory,
+            String frameworkName,
+            String connectionString,
+            RetryPolicy retryPolicy) {
+        this(factory, frameworkName, connectionString, retryPolicy, "", "");
+    }
+
+    public CuratorConfigStore(
+            ConfigurationFactory<T> factory,
+            String frameworkName,
+            String connectionString,
+            String username,
+            String password) {
+        this(factory, frameworkName, connectionString, CuratorUtils.getDefaultRetry(), username, password);
+    }
+
 
     /**
      * Creates a new {@link ConfigStore} which uses Curator with a custom {@link RetryPolicy}.
@@ -76,14 +91,18 @@ public class CuratorConfigStore<T extends Configuration> implements ConfigStore<
      * @param frameworkName The name of the framework
      * @param connectionString The host/port of the ZK server, eg "master.mesos:2181"
      * @param retryPolicy The custom {@link RetryPolicy}
+     * @param username zookeeper auth username
+     * @param password zookeeper auth password
      */
     public CuratorConfigStore(
             ConfigurationFactory<T> factory,
             String frameworkName,
             String connectionString,
-            RetryPolicy retryPolicy) {
+            RetryPolicy retryPolicy,
+            String username,
+            String password) {
         this.factory = factory;
-        this.curator = new CuratorPersister(connectionString, retryPolicy);
+        this.curator = new CuratorPersister(connectionString, retryPolicy, username, password);
 
         // Check version up-front:
         int currentVersion = new CuratorSchemaVersionStore(curator, frameworkName).fetch();
