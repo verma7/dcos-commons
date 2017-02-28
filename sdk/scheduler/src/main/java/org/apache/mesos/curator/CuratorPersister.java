@@ -1,5 +1,6 @@
 package org.apache.mesos.curator;
 
+import com.google.common.base.Strings;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -127,9 +128,9 @@ public class CuratorPersister implements Persister {
                                                  RetryPolicy retryPolicy,
                                                  String username,
                                                  String password) {
-        if (username.isEmpty() && password.isEmpty()) {
+        if (Strings.isNullOrEmpty(username) && Strings.isNullOrEmpty(password)) {
             return createClient(connectionString, retryPolicy);
-        } else if (username.isEmpty() || password.isEmpty()) {
+        } else if (Strings.isNullOrEmpty(username) || Strings.isNullOrEmpty(password)) {
             throw new IllegalArgumentException("Zookeeper authorization credentials are inappropriate");
         }
 

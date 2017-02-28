@@ -38,14 +38,14 @@ task sourceJar(type: Jar) {
 publishing {
     repositories {
         maven {
-            if(project.version.endsWith('-SNAPSHOT')) {
-                url "s3://downloads.mesosphere.io/maven-snapshot/"
+            if (project.version.endsWith('-SNAPSHOT')) {
+                url RepositoryUrlSnapshot
             } else {
-                url "s3://downloads.mesosphere.io/maven/"
+                url RepositoryUrlRelease
             }
-            credentials(AwsCredentials) {
-                accessKey System.env['AWS_ACCESS_KEY_ID']
-                secretKey System.env['AWS_SECRET_ACCESS_KEY']
+            credentials {
+                username RepositoryUsername
+                password RepositoryPassword
             }
         }
         publications {

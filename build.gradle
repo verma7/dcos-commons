@@ -26,7 +26,7 @@ allprojects {
     // at ANY TIME as changes are merged into master. They represent a fully unstable API.
     // ---
     group = "mesosphere"
-    version = "0.8.1.2"
+    version = "0.8.1.3"
 
     sourceCompatibility = '1.8'
     targetCompatibility = '1.8'
@@ -90,4 +90,28 @@ shadowJar {
     exclude 'META-INF/*.SF'
     exclude 'META-INF/*.DSA'
     exclude 'META-INF/*.RSA'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            if (project.version.endsWith('-SNAPSHOT')) {
+                url RepositoryUrlSnapshot
+            } else {
+                url RepositoryUrlRelease
+            }
+            credentials {
+                username RepositoryUsername
+                password RepositoryPassword
+            }
+        }
+    }
 }
