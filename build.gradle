@@ -5,6 +5,10 @@ plugins {
     id 'com.github.ksoichiro.console.reporter' version '0.4.0'
 }
 
+ext {
+    isSnapshot = project.properties['Release'] ? false : true
+}
+
 allprojects {
     apply plugin: 'java'
     apply plugin: 'jacoco'
@@ -26,7 +30,7 @@ allprojects {
     // at ANY TIME as changes are merged into master. They represent a fully unstable API.
     // ---
     group = "mesosphere"
-    version = "0.8.1.3"
+    version = "0.8.1.4" + (isSnapshot ? '-SNAPSHOT' : '')
 
     sourceCompatibility = '1.8'
     targetCompatibility = '1.8'
